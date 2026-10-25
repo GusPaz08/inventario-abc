@@ -1,10 +1,10 @@
 # Inventario: qué productos importan y cómo reponerlos
 
 Clasificación ABC-XYZ de casi 3.900 productos de una tienda real, hecha con SQL y Python
-sobre un año de ventas (más de un millón de líneas de factura): cuánto vende cada producto
-y con qué regularidad.
+sobre un año de ventas (más de un millón de líneas de factura): cuánto vende cada producto,
+con qué regularidad, y cuándo y cuánto reponer.
 
-Es el primer paso de un método que apliqué en mi trabajo. En un almacén de más de
+Es el método que apliqué en mi trabajo. En un almacén de más de
 60.000 referencias sin datos fiables, reclasifiqué el stock por rotación y fijé máximos y
 mínimos por referencia. Aquí reproduzco el método con datos públicos para que se pueda
 revisar de principio a fin.
@@ -92,6 +92,51 @@ decisiones cambian el resultado:
 - **Los productos lanzados durante el año se miden desde su primer mes completo.** Contar
   los meses en que aún no existían los haría parecer irregulares a todos.
 
+## Paso 3: cuánto pedir y cuándo
+
+Cada producto de venta regular o con altibajos (X e Y) tiene una regla de reposición:
+**cuando el stock, contando lo pedido que aún no ha llegado, baja del punto de pedido, se
+pide una cantidad fija.**
+
+Ejemplo con las cápsulas para magdalenas (AX), que venden de media 1.534 unidades al mes:
+
+| | Unidades |
+|---|---:|
+| Venta durante las 3 semanas que tarda el proveedor | 1.059 |
+| + Stock de seguridad, por si esas semanas se vende más | 896 |
+| **= Punto de pedido: cuando quedan estas, se pide** (redondeado hacia arriba) | **1.956** |
+| Cantidad a pedir: 2 semanas de venta | 707 |
+| Máximo de stock | 2.663 |
+
+Las reglas cubren **1.531 productos, que hacen el 70 % de la venta**. El resto no lleva regla
+automática, a propósito:
+
+- **Los que venden a golpes (Z).** Con la misma fórmula, la guirnalda navideña tendría un
+  punto de pedido de 5.002 unidades todo el año. Sobraría stock de enero a agosto, cuando
+  vende menos de 400 al mes, y se quedaría corto en noviembre, cuando vende 7.868. Estos se
+  planifican con previsión. Los que además venden poco (CZ, 1.432 productos) se piden solo
+  bajo pedido.
+- **Los 448 productos nuevos**, hasta que tengan 6 meses de ventas.
+
+La regla de cada producto, y el motivo de los que no la llevan, están en
+[`resultados/reposicion.xlsx`](resultados/reposicion.xlsx).
+
+**Supuestos.** Los datos no traen el plazo del proveedor ni los costes de pedir y almacenar,
+así que se han fijado estos:
+
+| Supuesto | Valor |
+|---|---|
+| Plazo del proveedor | 3 semanas, igual para todos los productos |
+| Nivel de servicio: de cada 100 pedidos, en cuántos no se agota el stock mientras llega | A 98 %, B 95 %, C 90 % |
+| Cuánto pedir cada vez | A 2 semanas de venta, B 4, C 8: los A en pedidos pequeños y frecuentes, los C en pedidos grandes y espaciados |
+
+El plazo es el supuesto que más pesa: con 8 semanas, por ejemplo importando de Asia, el punto
+de pedido de las cápsulas pasaría de 1.956 a 4.289 unidades.
+
+**Limitación.** La regla usa la venta media del año. En esta tienda, que vende en noviembre
+más del doble que en febrero, se queda corta antes de Navidad. Eso lo resuelve el siguiente
+paso: la previsión de la demanda.
+
 ## Cómo se ha hecho
 
 1. **Carga** ([`01_cargar_datos.py`](01_cargar_datos.py)): el Excel original pasa a una base
@@ -108,15 +153,18 @@ decisiones cambian el resultado:
    meses sin venta a 0, y su variación.
 6. **Tabla ABC-XYZ** ([`03_matriz_abc_xyz.py`](03_matriz_abc_xyz.py)): cruza las dos
    clasificaciones y genera el Excel y la tabla.
+7. **Reposición** ([`04_reposicion.py`](04_reposicion.py)): punto de pedido = venta durante el
+   plazo + stock de seguridad (según el nivel de servicio y la variación de la demanda);
+   cantidad = semanas de venta según la clase; máximo = punto de pedido + cantidad.
 
 Cada resultado se ha comprobado con un segundo cálculo independiente, hecho desde las líneas
-originales sin pasar por las consultas SQL. Coinciden los totales y la clase ABC y XYZ de
-cada uno de los 3.887 productos.
+originales sin pasar por las consultas SQL. Coinciden los totales, la clase ABC y XYZ de cada
+uno de los 3.887 productos y la regla de cada uno de los 1.531 productos que la llevan.
 
-## Próximos pasos
+## Próximo paso
 
-- **Máximos, mínimos y punto de pedido** por producto, según su casilla.
-- **Previsión de la demanda** para los productos A.
+- **Previsión de la demanda** con la temporada incluida, empezando por los productos A que
+  venden a golpes (AZ).
 
 ## Para reproducirlo
 
@@ -129,6 +177,7 @@ unzip datos/online_retail_ii.zip -d datos/
 uv run 01_cargar_datos.py
 uv run 02_clasificacion_abc.py
 uv run 03_matriz_abc_xyz.py
+uv run 04_reposicion.py
 ```
 
 ## Datos

@@ -5,7 +5,6 @@ a golpes. Juntas forman una tabla de 9 casillas, y cada casilla pide una forma
 distinta de reponer. Deja en resultados/ un Excel y la tabla en imagen.
 """
 
-import sqlite3
 from pathlib import Path
 
 import matplotlib
@@ -16,12 +15,10 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.patches import Rectangle
 
+from clasificacion import clasificar_abc_xyz
 from formato import dar_formato
 
-CARPETA = Path(__file__).parent
-BASE = CARPETA / "datos" / "inventario.db"
-SQL = CARPETA / "sql"
-RESULTADOS = CARPETA / "resultados"
+RESULTADOS = Path(__file__).parent / "resultados"
 
 FILAS = ["A", "B", "C"]
 COLUMNAS = ["X", "Y", "Z", "nuevo"]
@@ -52,14 +49,7 @@ QUE_HACER = {
 
 
 def clasificar():
-    with sqlite3.connect(BASE) as con:
-        con.executescript((SQL / "01_ventas_limpias.sql").read_text())
-        abc = pd.read_sql((SQL / "02_abc.sql").read_text(), con)
-        xyz = pd.read_sql((SQL / "03_xyz.sql").read_text(), con)
-    productos = abc.merge(xyz, on="producto", how="left")
-    # Los lanzados en noviembre de 2011 aún no tienen ningún mes completo.
-    productos["clase_xyz"] = productos["clase_xyz"].fillna("nuevo")
-    productos["casilla"] = productos["clase"] + productos["clase_xyz"]
+    productos = clasificar_abc_xyz()
     productos["que_hacer"] = productos["casilla"].map(QUE_HACER)
     return productos
 
