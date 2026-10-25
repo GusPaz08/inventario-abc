@@ -12,8 +12,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
-from openpyxl.styles import Font, PatternFill
-from openpyxl.utils import get_column_letter
+
+from formato import dar_formato
 
 CARPETA = Path(__file__).parent
 BASE = CARPETA / "datos" / "inventario.db"
@@ -55,19 +55,7 @@ def guardar_excel(abc, resumen, ruta):
     with pd.ExcelWriter(ruta, engine="openpyxl") as libro:
         for nombre, df in (("Resumen", tabla), ("Productos", productos)):
             df.to_excel(libro, sheet_name=nombre, index=False)
-            hoja = libro.sheets[nombre]
-            for i, columna in enumerate(df.columns, start=1):
-                letra = get_column_letter(i)
-                celda = hoja[f"{letra}1"]
-                celda.font = Font(bold=True, color="FFFFFF")
-                celda.fill = PatternFill("solid", fgColor="1F3864")
-                ancho = max(len(columna), df[columna].astype(str).str.len().max())
-                hoja.column_dimensions[letra].width = min(ancho + 3, 45)
-                if columna in formatos:
-                    for fila in hoja.iter_rows(min_row=2, min_col=i, max_col=i):
-                        fila[0].number_format = formatos[columna]
-            hoja.freeze_panes = "A2"
-            hoja.auto_filter.ref = hoja.dimensions
+            dar_formato(libro.sheets[nombre], df, formatos)
 
 
 def dibujar_curva(abc, resumen, ruta):
