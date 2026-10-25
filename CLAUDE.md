@@ -14,5 +14,7 @@ sin jerga.
   es lo que se enseña.
 - Citar el dataset (CC BY 4.0) en cualquier pieza que use sus datos.
 
-Siguiente: XYZ (variabilidad de la demanda) → máximos, mínimos y punto de pedido →
-previsión de la demanda de los A (Nixtla/statsforecast).
+Hecho: ABC (paso 1) y XYZ con la tabla de 9 casillas (paso 2).
+Siguiente: paso 3, máximos, mínimos y punto de pedido por producto según su casilla, con los
+supuestos (plazo del proveedor, nivel de servicio, cobertura) aprobados por Gustavo y escritos
+en el README → previsión de la demanda de los A (Nixtla/statsforecast).
